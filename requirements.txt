@@ -11,3 +11,4 @@ rich
 torch
 lightning
 torchinfo
+captum
