@@ -1,0 +1,12 @@
+numpy>=2.4
+h5py
+pandas
+seaborn
+jupyterlab
+notebook
+
+ipywidgets
+rich
+
+torch
+lightning
