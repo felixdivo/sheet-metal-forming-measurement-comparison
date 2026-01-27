@@ -12,3 +12,4 @@ torch
 lightning
 torchinfo
 captum
+wandb
