@@ -2,6 +2,7 @@ numpy>=2.4
 h5py
 pandas
 seaborn
+cmap
 jupyterlab
 notebook
 
