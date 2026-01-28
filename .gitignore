@@ -1,6 +1,7 @@
 /data
 /lightning_logs
 /wandb
+/plots
 
 ########################
 
