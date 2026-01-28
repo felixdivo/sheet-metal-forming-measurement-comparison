@@ -10,6 +10,16 @@ OUTPUT_DIR="experiment_results"
 LOG_FILE="${OUTPUT_DIR}/experiment_log.txt"
 MAX_PARALLEL_JOBS=8  # Adjust based on available CPU/GPU resources
 
+# Prompt for WandB group name (optional)
+read -p "Enter WandB group name for this experiment batch (optional, press Enter to skip): " WANDB_GROUP
+if [ -z "$WANDB_GROUP" ]; then
+    echo "No WandB group specified - experiments will not be grouped"
+    WANDB_GROUP_PARAM=""
+else
+    echo "Using WandB group: $WANDB_GROUP"
+    WANDB_GROUP_PARAM="-p wandb_group \"$WANDB_GROUP\""
+fi
+
 # Create output directory
 mkdir -p "${OUTPUT_DIR}"
 
@@ -18,6 +28,11 @@ mkdir -p "${OUTPUT_DIR}"
     echo "========================================"
     echo "Experiment Run Started: $(date)"
     echo "Max parallel jobs: ${MAX_PARALLEL_JOBS}"
+    if [ -n "$WANDB_GROUP" ]; then
+        echo "WandB Group: ${WANDB_GROUP}"
+    else
+        echo "WandB Group: (none)"
+    fi
     echo "========================================"
     echo ""
 } > "${LOG_FILE}"
@@ -50,25 +65,31 @@ run_experiment() {
     log_message "  Channels: ${signal_channels}"
     log_message "  Target: ${target}"
 
-    # Construct notebook execution command
-    local nb_cmd="jupyter nbconvert --to notebook --execute ${NOTEBOOK}"
-    nb_cmd+=" --output ${exp_dir}/output.ipynb"
-    nb_cmd+=" --ExecutePreprocessor.timeout=3600"
-    nb_cmd+=" --ExecutePreprocessor.kernel_name=python3"
-
-    # Build argument list for the notebook
-    local nb_args="--classification_target ${target} --plot_path ${exp_dir}"
+    # Construct papermill command with parameters
+    local papermill_params=""
+    papermill_params+=" -p data_path all_data.hdf5"
+    papermill_params+=" -p plot_path ${exp_dir}"
+    papermill_params+=" -p classification_target ${target}"
 
     if [ "${signal_portion}" == "Single" ]; then
-        nb_args+=" --signal_portion Single --signal_only_channels ${signal_channels}"
-    else
-        nb_args+=" --signal_portion ${signal_portion}"
+        # For single channels, pass as YAML list
+        papermill_params+=" -r signal_only_channels [${signal_channels}]"
     fi
 
-    # Execute the notebook with arguments
+    # Add WandB group if specified
+    if [ -n "$WANDB_GROUP" ]; then
+        papermill_params+=" -p wandb_group \"${WANDB_GROUP}\""
+    fi
+
+    # Execute the notebook with papermill
     echo "[$(date +%H:%M:%S)] Starting: ${experiment_name}"
 
-    if ${nb_cmd} -- ${nb_args} > "${exp_dir}/execution.log" 2>&1; then
+    if papermill ${NOTEBOOK} "${exp_dir}/output.ipynb" \
+        ${papermill_params} \
+        --kernel python3 \
+        --execution-timeout 3600 \
+        --request-save-on-cell-execute \
+        > "${exp_dir}/execution.log" 2>&1; then
         echo "[$(date +%H:%M:%S)] ✓ Success: ${experiment_name}"
         log_message "Status: SUCCESS"
     else

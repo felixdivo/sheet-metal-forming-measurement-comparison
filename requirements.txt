@@ -5,6 +5,7 @@ seaborn
 cmap
 jupyterlab
 notebook
+papermill
 
 ipywidgets
 rich
