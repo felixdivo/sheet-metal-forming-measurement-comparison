@@ -8,7 +8,7 @@
 NOTEBOOK="eval-models.ipynb"
 OUTPUT_DIR="experiment_results"
 LOG_FILE="${OUTPUT_DIR}/experiment_log.txt"
-MAX_PARALLEL_JOBS=8  # Adjust based on available CPU/GPU resources
+MAX_PARALLEL_JOBS=12  # Adjust based on available CPU/GPU resources
 
 # Prompt for WandB group name (optional)
 read -p "Enter WandB group name for this experiment batch (optional, press Enter to skip): " WANDB_GROUP
@@ -71,9 +71,19 @@ run_experiment() {
     papermill_params+=" -p plot_path ${exp_dir}"
     papermill_params+=" -p classification_target ${target}"
 
+    # Pass channel configuration based on signal portion type
     if [ "${signal_portion}" == "Single" ]; then
         # For single channels, pass as YAML list
         papermill_params+=" -r signal_only_channels [${signal_channels}]"
+    elif [ "${signal_portion}" == "DIRECT" ]; then
+        # DIRECT channels: 1, 2, 3
+        papermill_params+=" -r signal_only_channels [1,2,3]"
+    elif [ "${signal_portion}" == "INDIRECT" ]; then
+        # INDIRECT channels: 4, 5, 7, 8, 9 (skipping 6 which is "Not Connected")
+        papermill_params+=" -r signal_only_channels [4,5,7,8,9]"
+    elif [ "${signal_portion}" == "ALL" ]; then
+        # ALL channels: DIRECT + INDIRECT
+        papermill_params+=" -r signal_only_channels [1,2,3,4,5,7,8,9]"
     fi
 
     # Add WandB group if specified
