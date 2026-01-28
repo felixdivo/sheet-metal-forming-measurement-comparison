@@ -8,7 +8,7 @@
 NOTEBOOK="eval-models.ipynb"
 OUTPUT_DIR="experiment_results"
 LOG_FILE="${OUTPUT_DIR}/experiment_log.txt"
-MAX_PARALLEL_JOBS=12  # Adjust based on available CPU/GPU resources
+MAX_PARALLEL_JOBS=8  # Adjust based on available CPU/GPU resources
 
 # Prompt for WandB group name (optional)
 read -p "Enter WandB group name for this experiment batch (optional, press Enter to skip): " WANDB_GROUP
