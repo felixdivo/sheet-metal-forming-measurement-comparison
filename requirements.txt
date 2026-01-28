@@ -1,6 +1,7 @@
 numpy>=2.4
 h5py
 pandas
+scipy
 seaborn
 cmap
 jupyterlab
