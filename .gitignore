@@ -2,7 +2,7 @@
 /lightning_logs
 /wandb
 /plots
-/experiment_results
+/experiment_results*
 
 ########################
 
