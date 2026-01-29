@@ -5,10 +5,23 @@
 # Experiments run in parallel for faster execution
 
 # Configuration
-NOTEBOOK="eval-models.ipynb"
+NOTEBOOK="eval_models.ipynb"
 OUTPUT_DIR="experiment_results"
 LOG_FILE="${OUTPUT_DIR}/experiment_log.txt"
 MAX_PARALLEL_JOBS=8  # Adjust based on available CPU/GPU resources
+CONFIG_FILE="channel_config.json"
+
+# Channel index to readable name mapping (from channel_config.json)
+# Names have spaces and parentheses removed for filesystem compatibility
+declare -A CHANNEL_NAMES
+CHANNEL_NAMES[1]="StripConnectionCut-Direct"
+CHANNEL_NAMES[2]="DeepDrawing-Direct"
+CHANNEL_NAMES[3]="Ironing-Direct"
+CHANNEL_NAMES[4]="DeepDrawing-Top-Indirect"
+CHANNEL_NAMES[5]="DeepDrawing-Bottom-Indirect"
+CHANNEL_NAMES[7]="Ironing-Top-Indirect"
+CHANNEL_NAMES[8]="Ironing-StampHolder-Indirect"
+CHANNEL_NAMES[9]="Ironing-Bottom-Indirect"
 
 # Prompt for WandB group name (optional)
 read -p "Enter WandB group name for this experiment batch (optional, press Enter to skip): " WANDB_GROUP
@@ -124,20 +137,22 @@ wait_for_slots() {
 declare -a EXPERIMENTS
 
 # Individual signal experiments (all 8 individual signals × 2 targets = 16 experiments)
+# Folder names use format: target_{target}-{ReadableSignalName}
 INDIVIDUAL_SIGNALS=(1 2 3 4 5 7 8 9)
 
 for signal in "${INDIVIDUAL_SIGNALS[@]}"; do
-    EXPERIMENTS+=("Single|${signal}|Ironing|signal_${signal}_ironing")
-    EXPERIMENTS+=("Single|${signal}|DeepDrawing|signal_${signal}_deepdrawing")
+    readable_name="${CHANNEL_NAMES[$signal]}"
+    EXPERIMENTS+=("Single|${signal}|Ironing|target_ironing-${readable_name}")
+    EXPERIMENTS+=("Single|${signal}|DeepDrawing|target_deepdrawing-${readable_name}")
 done
 
 # Predefined group experiments (3 groups × 2 targets = 6 experiments)
-EXPERIMENTS+=("DIRECT||Ironing|direct_ironing")
-EXPERIMENTS+=("DIRECT||DeepDrawing|direct_deepdrawing")
-EXPERIMENTS+=("INDIRECT||Ironing|indirect_ironing")
-EXPERIMENTS+=("INDIRECT||DeepDrawing|indirect_deepdrawing")
-EXPERIMENTS+=("ALL||Ironing|all_ironing")
-EXPERIMENTS+=("ALL||DeepDrawing|all_deepdrawing")
+EXPERIMENTS+=("DIRECT||Ironing|target_ironing-DIRECT")
+EXPERIMENTS+=("DIRECT||DeepDrawing|target_deepdrawing-DIRECT")
+EXPERIMENTS+=("INDIRECT||Ironing|target_ironing-INDIRECT")
+EXPERIMENTS+=("INDIRECT||DeepDrawing|target_deepdrawing-INDIRECT")
+EXPERIMENTS+=("ALL||Ironing|target_ironing-ALL")
+EXPERIMENTS+=("ALL||DeepDrawing|target_deepdrawing-ALL")
 
 # Count total experiments
 TOTAL_EXPERIMENTS=${#EXPERIMENTS[@]}

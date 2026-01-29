@@ -1,0 +1,24 @@
+{
+    "channel_mapping": {
+        "time_s": "Time (s)",
+        "K1_Ch1_Mod2__AI0": "Strip Connection Cut (Direct)",
+        "K1_Ch2_Mod2__AI1": "Deep Drawing (Direct)",
+        "K1_Ch3_Mod2__AI2": "Ironing (Direct)",
+        "K2_Ch1_Mod2__AI3": "Deep Drawing - Top (Indirect)",
+        "K2_Ch2_Mod2__AI4": "Deep Drawing - Bottom (Indirect)",
+        "K2_Ch3_Mod2__AI5": "Not Connected",
+        "K3_Ch1_Mod2__AI6": "Ironing - Top (Indirect)",
+        "K3_Ch2_Mod2__AI7": "Ironing - Stamp Holder (Indirect)",
+        "K3_Ch3_Mod2__AI8": "Ironing - Bottom (Indirect)",
+        "Mod2__AI9": "Mod2/AI9",
+        "Mod7_A0": "Thermocouple 1",
+        "Mod7_A1": "Thermocouple 2",
+        "Mod7_A2": "Mod7 A2",
+        "Mod7_A3": "Mod7 A3"
+    },
+    "channel_groups": {
+        "DIRECT": [1, 2, 3],
+        "INDIRECT": [4, 5, 7, 8, 9],
+        "ALL": [1, 2, 3, 4, 5, 7, 8, 9]
+    }
+}
