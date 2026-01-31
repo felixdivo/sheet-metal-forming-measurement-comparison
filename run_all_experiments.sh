@@ -20,7 +20,7 @@ CHANNEL_NAMES[3]="Ironing-Direct"
 CHANNEL_NAMES[4]="DeepDrawing-Top-Indirect"
 CHANNEL_NAMES[5]="DeepDrawing-Bottom-Indirect"
 CHANNEL_NAMES[7]="Ironing-Top-Indirect"
-CHANNEL_NAMES[8]="Ironing-StampHolder-Indirect"
+CHANNEL_NAMES[8]="Ironing-PunchHolder-Indirect"
 CHANNEL_NAMES[9]="Ironing-Bottom-Indirect"
 
 # Prompt for WandB group name (optional)
