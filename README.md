@@ -1,6 +1,6 @@
 # Sheet Metal Forming Measurement Comparison
 
-Deep learning analysis of sheet metal forming signals with model interpretability via attribution analysis.
+Deep learning analysis of sheet metal forming signals for tool wear classification with model interpretability via attribution analysis.
 
 ## Overview
 
@@ -8,22 +8,20 @@ This project trains a 1D CNN to predict forming parameters from force sensor sig
 
 ## Contents
 
-- `data/` - Input JSON measurement files and processed HDF5 archive
-- `prepare-data.ipynb` - Data loading and preprocessing from HDF5 with train/val/test splitting
-- `eval-models.ipynb` - Model training (PyTorch Lightning), evaluation, and attribution analysis with visualizations
+- `data/` - Put your JSON measurement files here
+- `prepare_data.ipynb` - Data loading and preprocessing to HDF5 format
+- `eval_models.ipynb` - Model training (using PyTorch & Lightning), evaluation, and attribution analysis for a single set of signals and target(s)
+- `run_all_experiments.sh` - Batch runner for all signal/target combinations
+- `visualize_results.ipynb` - Visualization of results across multiple experiments from `run_all_experiments.sh`
 
 ## Quick Start
 
+TODO: Explain how to obtain the data.
+
 ```shell
 pip install -r requirements.txt
-jupyter lab eval-models.ipynb
+jupyter lab eval_models.ipynb
 ```
-
-## Outputs
-
-- Time-domain and frequency-domain attribution plots with confidence bands
-- Per-signal importance distributions (box plots)
-- Model checkpoints in `checkpoints/simplecnn/`
 
 ## License
 
