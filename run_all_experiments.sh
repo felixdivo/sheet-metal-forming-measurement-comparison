@@ -33,6 +33,15 @@ else
     WANDB_GROUP_PARAM="-p wandb_group \"$WANDB_GROUP\""
 fi
 
+# Prompt for cropping initial time steps (optional)
+read -p "Skip first N time steps? Enter number to crop, or press Enter for no cropping: " SKIP_TIMESTEPS
+if [ -z "$SKIP_TIMESTEPS" ]; then
+    echo "No cropping - using full time series"
+    SKIP_TIMESTEPS=0
+else
+    echo "Will skip first ${SKIP_TIMESTEPS} time steps"
+fi
+
 # Create output directory
 mkdir -p "${OUTPUT_DIR}"
 
@@ -45,6 +54,11 @@ mkdir -p "${OUTPUT_DIR}"
         echo "WandB Group: ${WANDB_GROUP}"
     else
         echo "WandB Group: (none)"
+    fi
+    if [ "$SKIP_TIMESTEPS" -gt 0 ]; then
+        echo "Skip first N timesteps: ${SKIP_TIMESTEPS}"
+    else
+        echo "Skip first N timesteps: (none)"
     fi
     echo "========================================"
     echo ""
@@ -77,6 +91,7 @@ run_experiment() {
     log_message "  Signal Portion: ${signal_portion}"
     log_message "  Channels: ${signal_channels}"
     log_message "  Target: ${target}"
+    log_message "  Skip Timesteps: ${SKIP_TIMESTEPS}"
 
     # Construct papermill command with parameters
     local papermill_params=""
@@ -102,6 +117,11 @@ run_experiment() {
     # Add WandB group if specified
     if [ -n "$WANDB_GROUP" ]; then
         papermill_params+=" -p wandb_group \"${WANDB_GROUP}\""
+    fi
+
+    # Add skip_first_n_timesteps if specified
+    if [ "$SKIP_TIMESTEPS" -gt 0 ]; then
+        papermill_params+=" -p skip_first_n_timesteps ${SKIP_TIMESTEPS}"
     fi
 
     # Execute the notebook with papermill
