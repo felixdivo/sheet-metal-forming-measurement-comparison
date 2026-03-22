@@ -23,6 +23,29 @@ pip install -r requirements.txt
 jupyter lab eval_models.ipynb
 ```
 
+### Installing Times New Roman Font (for plots)
+The notebooks use Times New Roman for publication-quality plots. This font is not installed by default in most Linux environments. To install it:
+
+```bash
+# Install cabextract (needed to extract Microsoft fonts)
+sudo apt-get update
+sudo apt-get install -y cabextract
+
+# Download and install Times New Roman from Microsoft's corefonts
+cd /tmp
+curl -sL "http://downloads.sourceforge.net/corefonts/times32.exe" -o times32.exe
+cabextract -q times32.exe
+mkdir -p ~/.local/share/fonts
+mv *.TTF ~/.local/share/fonts/
+rm -f times32.exe
+fc-cache -fv ~/.local/share/fonts
+
+# Clear matplotlib's font cache so it picks up the new font
+rm -rf ~/.cache/matplotlib/font*.json
+```
+
+After installing, **restart your Jupyter kernel** for matplotlib to recognize the new font.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
