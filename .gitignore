@@ -3,6 +3,7 @@
 /wandb
 /plots
 /experiment_results**
+hp_search/output
 
 ########################
 

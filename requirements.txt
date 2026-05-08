@@ -16,3 +16,9 @@ lightning
 torchinfo
 captum
 wandb
+
+scikit-learn
+npTDMS
+tensorflow[and-cuda]
+optuna
+optuna-dashboard
