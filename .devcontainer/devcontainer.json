@@ -7,8 +7,9 @@
 		"vscode": {
 			"extensions": [
 				"GitHub.copilot",
-				"Swellaby.python-pack",
-				"charliermarsh.ruff"
+				"ms-python.python",
+				"charliermarsh.ruff",
+				"Anthropic.claude-code"
 			]
 		}
 	},
