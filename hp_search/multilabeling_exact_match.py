@@ -32,6 +32,9 @@ if gpus:
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
 
+# --- bf16 Mixed Precision ---
+tf.keras.mixed_precision.set_global_policy('mixed_bfloat16')
+
 # --- Logging konfigurieren ---
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(message)s")
@@ -316,8 +319,8 @@ def build_model_optuna(trial, input_shape):
         x = Dense(units, activation="relu", kernel_regularizer=kernel_reg)(x)
         x = Dropout(dropout)(x)
 
-    out_T = Dense(3, activation="softmax", name="T_output")(x)
-    out_A = Dense(3, activation="softmax", name="A_output")(x)
+    out_T = Dense(3, activation="softmax", name="T_output", dtype='float32')(x)
+    out_A = Dense(3, activation="softmax", name="A_output", dtype='float32')(x)
 
     model = Model(inputs=inp, outputs=[out_T, out_A])
 
@@ -330,7 +333,8 @@ def build_model_optuna(trial, input_shape):
         metrics={
             "T_output": ["accuracy"],
             "A_output": ["accuracy"],
-        }
+        },
+        jit_compile=True,
     )
 
     return model
@@ -357,7 +361,7 @@ class ExactMatchPruningCallback(tf.keras.callbacks.Callback):
         self.true_A = np.argmax(yA_val, axis=1)
 
     def on_epoch_end(self, epoch, logs=None):
-        pred_T_prob, pred_A_prob = self.model.predict(self.X_val, verbose=0)
+        pred_T_prob, pred_A_prob = self.model.predict(self.X_val, batch_size=512, verbose=0)
         pred_T = np.argmax(pred_T_prob, axis=1)
         pred_A = np.argmax(pred_A_prob, axis=1)
         exact_match = float(np.mean((pred_T == self.true_T) & (pred_A == self.true_A)))
@@ -454,7 +458,7 @@ def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_in
                 verbose=0
             )
 
-            pred_T_prob, pred_A_prob = model.predict(X_val, verbose=0)
+            pred_T_prob, pred_A_prob = model.predict(X_val, batch_size=512, verbose=0)
 
             pred_T = np.argmax(pred_T_prob, axis=1)
             pred_A = np.argmax(pred_A_prob, axis=1)
@@ -482,6 +486,9 @@ def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_in
         trial.set_user_attr("mean_T_accuracy", mean_T_acc)
         trial.set_user_attr("mean_A_accuracy", mean_A_acc)
         trial.set_user_attr("mean_exact_match", mean_exact_match)
+        trial.set_user_attr("var_T_accuracy", float(np.var(fold_T_accs)))
+        trial.set_user_attr("var_A_accuracy", float(np.var(fold_A_accs)))
+        trial.set_user_attr("var_exact_match", float(np.var(fold_exact_matches)))
 
         return mean_exact_match
 
@@ -498,7 +505,7 @@ study = optuna.create_study(
     direction="maximize",
     sampler=sampler,
     pruner=pruner,
-    storage="sqlite:///optuna_TA_MultiOutput.db",
+    storage=f"sqlite:///{output_dir}/optuna.db",
     study_name="bayesian_TA_MultiOutput",
     load_if_exists=True
 )
