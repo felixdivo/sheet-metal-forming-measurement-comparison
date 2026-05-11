@@ -393,120 +393,125 @@ def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_in
             reinit=True,
         )
 
-        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
-        epochs     = trial.suggest_int("epochs", 15, 75, step=5)
+        try:
+            batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
+            epochs     = trial.suggest_int("epochs", 15, 75, step=5)
 
-        k = 3
-        skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
+            k = 3
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
 
-        fold_exact_matches = []
-        fold_T_accs = []
-        fold_A_accs = []
+            fold_exact_matches = []
+            fold_T_accs = []
+            fold_A_accs = []
 
-        for fold, (tr_idx, te_idx) in enumerate(skf.split(X_trainval, y_trainval_int), 1):
+            for fold, (tr_idx, te_idx) in enumerate(skf.split(X_trainval, y_trainval_int), 1):
 
-            X_tr_full = X_trainval[tr_idx]
-            yT_tr_full = yT_trainval[tr_idx]
-            yA_tr_full = yA_trainval[tr_idx]
+                X_tr_full = X_trainval[tr_idx]
+                yT_tr_full = yT_trainval[tr_idx]
+                yA_tr_full = yA_trainval[tr_idx]
 
-            n_tr = len(X_tr_full)
-            val_n = max(1, int(0.15 * n_tr))
+                n_tr = len(X_tr_full)
+                val_n = max(1, int(0.15 * n_tr))
 
-            rng = np.random.default_rng(1000 + fold)
-            perm = rng.permutation(n_tr)
+                rng = np.random.default_rng(1000 + fold)
+                perm = rng.permutation(n_tr)
 
-            val_local = perm[:val_n]
-            tr_local  = perm[val_n:]
+                val_local = perm[:val_n]
+                tr_local  = perm[val_n:]
 
-            X_tr = X_tr_full[tr_local]
-            yT_tr = yT_tr_full[tr_local]
-            yA_tr = yA_tr_full[tr_local]
+                X_tr = X_tr_full[tr_local]
+                yT_tr = yT_tr_full[tr_local]
+                yA_tr = yA_tr_full[tr_local]
 
-            X_val = X_tr_full[val_local]
-            yT_val = yT_tr_full[val_local]
-            yA_val = yA_tr_full[val_local]
+                X_val = X_tr_full[val_local]
+                yT_val = yT_tr_full[val_local]
+                yA_val = yA_tr_full[val_local]
 
-            model = build_model_optuna(trial, input_shape=X_trainval.shape[1:])
+                model = build_model_optuna(trial, input_shape=X_trainval.shape[1:])
 
-            es = EarlyStopping(
-                monitor="val_loss",
-                mode="min",
-                patience=5,
-                restore_best_weights=True,
-                verbose=0
-            )
+                try:
+                    es = EarlyStopping(
+                        monitor="val_loss",
+                        mode="min",
+                        patience=5,
+                        restore_best_weights=True,
+                        verbose=0
+                    )
 
-            lr_sched = ReduceLROnPlateau(
-                monitor="val_loss",
-                mode="min",
-                factor=0.5,
-                patience=2,
-                min_lr=1e-6,
-                verbose=0
-            )
+                    lr_sched = ReduceLROnPlateau(
+                        monitor="val_loss",
+                        mode="min",
+                        factor=0.5,
+                        patience=2,
+                        min_lr=1e-6,
+                        verbose=0
+                    )
 
-            pruning_cb = ExactMatchPruningCallback(trial, fold, X_val, yT_val, yA_val)
+                    pruning_cb = ExactMatchPruningCallback(trial, fold, X_val, yT_val, yA_val)
 
-            model.fit(
-                X_tr,
-                {
-                    "T_output": yT_tr,
-                    "A_output": yA_tr,
-                },
-                validation_data=(
-                    X_val,
-                    {
-                        "T_output": yT_val,
-                        "A_output": yA_val,
-                    }
-                ),
-                epochs=epochs,
-                batch_size=batch_size,
-                callbacks=[es, lr_sched, pruning_cb],
-                verbose=0
-            )
+                    model.fit(
+                        X_tr,
+                        {
+                            "T_output": yT_tr,
+                            "A_output": yA_tr,
+                        },
+                        validation_data=(
+                            X_val,
+                            {
+                                "T_output": yT_val,
+                                "A_output": yA_val,
+                            }
+                        ),
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        callbacks=[es, lr_sched, pruning_cb],
+                        verbose=0
+                    )
 
-            pred_T_prob, pred_A_prob = model.predict(X_val, batch_size=512, verbose=0)
+                    pred_T_prob, pred_A_prob = model.predict(X_val, batch_size=512, verbose=0)
 
-            pred_T = np.argmax(pred_T_prob, axis=1)
-            pred_A = np.argmax(pred_A_prob, axis=1)
+                    pred_T = np.argmax(pred_T_prob, axis=1)
+                    pred_A = np.argmax(pred_A_prob, axis=1)
 
-            true_T = np.argmax(yT_val, axis=1)
-            true_A = np.argmax(yA_val, axis=1)
+                    true_T = np.argmax(yT_val, axis=1)
+                    true_A = np.argmax(yA_val, axis=1)
 
-            T_acc = accuracy_score(true_T, pred_T)
-            A_acc = accuracy_score(true_A, pred_A)
+                    T_acc = accuracy_score(true_T, pred_T)
+                    A_acc = accuracy_score(true_A, pred_A)
 
-            exact_match = np.mean((pred_T == true_T) & (pred_A == true_A))
+                    exact_match = np.mean((pred_T == true_T) & (pred_A == true_A))
 
-            fold_T_accs.append(float(T_acc))
-            fold_A_accs.append(float(A_acc))
-            fold_exact_matches.append(float(exact_match))
+                    fold_T_accs.append(float(T_acc))
+                    fold_A_accs.append(float(A_acc))
+                    fold_exact_matches.append(float(exact_match))
 
-            del model
-            tf.keras.backend.clear_session()
-            gc.collect()
+                finally:
+                    del model
+                    tf.keras.backend.clear_session()
+                    gc.collect()
 
-        mean_T_acc = float(np.mean(fold_T_accs))
-        mean_A_acc = float(np.mean(fold_A_accs))
-        mean_exact_match = float(np.mean(fold_exact_matches))
+            mean_T_acc = float(np.mean(fold_T_accs))
+            mean_A_acc = float(np.mean(fold_A_accs))
+            mean_exact_match = float(np.mean(fold_exact_matches))
 
-        trial.set_user_attr("mean_T_accuracy", mean_T_acc)
-        trial.set_user_attr("mean_A_accuracy", mean_A_acc)
-        trial.set_user_attr("mean_exact_match", mean_exact_match)
-        trial.set_user_attr("var_T_accuracy", float(np.var(fold_T_accs)))
-        trial.set_user_attr("var_A_accuracy", float(np.var(fold_A_accs)))
-        trial.set_user_attr("var_exact_match", float(np.var(fold_exact_matches)))
+            trial.set_user_attr("mean_T_accuracy", mean_T_acc)
+            trial.set_user_attr("mean_A_accuracy", mean_A_acc)
+            trial.set_user_attr("mean_exact_match", mean_exact_match)
+            trial.set_user_attr("var_T_accuracy", float(np.var(fold_T_accs)))
+            trial.set_user_attr("var_A_accuracy", float(np.var(fold_A_accs)))
+            trial.set_user_attr("var_exact_match", float(np.var(fold_exact_matches)))
 
-        wandb.log({
-            "exact_match": mean_exact_match,
-            "T_accuracy": mean_T_acc,
-            "A_accuracy": mean_A_acc,
-            "var_exact_match": float(np.var(fold_exact_matches)),
-        })
-        run.finish()
+            wandb.log({
+                "exact_match": mean_exact_match,
+                "T_accuracy": mean_T_acc,
+                "A_accuracy": mean_A_acc,
+                "var_exact_match": float(np.var(fold_exact_matches)),
+            })
 
-        return mean_exact_match
+            return mean_exact_match
+
+        finally:
+            run.finish()
 
     return objective
 # =============================================================================
