@@ -22,6 +22,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import regularizers
 import optuna
+import wandb
 
 # --- TF Warnungen reduzieren ---
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -385,6 +386,13 @@ class ExactMatchPruningCallback(tf.keras.callbacks.Callback):
 def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_int):
 
     def objective(trial):
+        run = wandb.init(
+            project="sheet-metal-forming",
+            group="hp-search-exact-match",
+            config=trial.params,
+            reinit=True,
+        )
+
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
         epochs     = trial.suggest_int("epochs", 15, 75, step=5)
 
@@ -490,6 +498,14 @@ def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_in
         trial.set_user_attr("var_A_accuracy", float(np.var(fold_A_accs)))
         trial.set_user_attr("var_exact_match", float(np.var(fold_exact_matches)))
 
+        wandb.log({
+            "exact_match": mean_exact_match,
+            "T_accuracy": mean_T_acc,
+            "A_accuracy": mean_A_acc,
+            "var_exact_match": float(np.var(fold_exact_matches)),
+        })
+        run.finish()
+
         return mean_exact_match
 
     return objective
@@ -520,7 +536,9 @@ if len(study.trials) > 0:
     else:
         logging.info("Noch kein abgeschlossener Trial mit Wert – starte neu.")
 
-remaining_trials = 200 - len(study.trials)
+N_TRIALS = 400
+
+remaining_trials = N_TRIALS - len(study.trials)
 if remaining_trials > 0:
     objective = optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_int)
     study.optimize(objective, n_trials=remaining_trials, catch=(Exception,))
@@ -560,6 +578,11 @@ def train_final_with_best(best_params, X_tv, yT_tv, yA_tv):
         verbose=1
     )
 
+    class WandbEpochLogger(tf.keras.callbacks.Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            if logs:
+                wandb.log({"final/" + k: v for k, v in logs.items()})
+
     history = model.fit(
         X_tv,
         {
@@ -569,12 +592,19 @@ def train_final_with_best(best_params, X_tv, yT_tv, yA_tv):
         validation_split=0.1,
         epochs=best_params.get("epochs", 30),
         batch_size=best_params.get("batch_size", 16),
-        callbacks=[es, lr_sched],
+        callbacks=[es, lr_sched, WandbEpochLogger()],
         verbose=1
     )
 
     return model, history
 
+
+wandb.init(
+    project="sheet-metal-forming",
+    group="hp-search-exact-match",
+    name="final-model",
+    config=study.best_trial.params,
+)
 
 final_model, final_history = train_final_with_best(
     study.best_trial.params,
@@ -612,6 +642,12 @@ print(f"T-Accuracy: {T_acc:.4f} ({T_acc*100:.2f}%)")
 print(f"A-Accuracy: {A_acc:.4f} ({A_acc*100:.2f}%)")
 print(f"Combined Exact Match: {exact_match_test:.4f} ({exact_match_test*100:.2f}%)")
 
+wandb.log({
+    "test/T_accuracy": T_acc,
+    "test/A_accuracy": A_acc,
+    "test/exact_match": exact_match_test,
+})
+
 print("\n=== Classification Report Tiefziehen T1 bis T3 ===")
 print(classification_report(true_T, pred_T, target_names=["T1", "T2", "T3"]))
 
@@ -635,6 +671,7 @@ plt.ylabel("Tatsächlich")
 plt.title("Konfusionsmatrix Tiefziehen")
 plt.tight_layout()
 plt.savefig(os.path.join(output_dir, "Confusion_Matrix_T.png"))
+wandb.log({"test/confusion_matrix_T": wandb.Image(plt)})
 plt.show()
 
 
@@ -655,6 +692,7 @@ plt.ylabel("Tatsächlich")
 plt.title("Konfusionsmatrix Abstrecken")
 plt.tight_layout()
 plt.savefig(os.path.join(output_dir, "Confusion_Matrix_A.png"))
+wandb.log({"test/confusion_matrix_A": wandb.Image(plt)})
 plt.show()
 try:
     df = study.trials_dataframe()
@@ -664,5 +702,7 @@ except Exception as e:
     print("Trials-Speichern fehlgeschlagen:", e)
 
 final_model.save(os.path.join(output_dir, "final_model_TA_MultiOutput.keras"))
+wandb.save(os.path.join(output_dir, "final_model_TA_MultiOutput.keras"))
+wandb.finish()
 print("\n✅ Modell gespeichert: final_model_TA_MultiOutput.keras")
 print("✅ FERTIG!")
