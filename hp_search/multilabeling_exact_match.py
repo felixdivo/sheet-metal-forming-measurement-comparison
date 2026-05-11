@@ -259,7 +259,7 @@ def build_model_optuna(trial, input_shape):
 
     use_batchnorm = trial.suggest_categorical("use_batchnorm", [True, False])
     pool_size     = trial.suggest_categorical("pool_size", [2, 4, 5])
-    dropout       = trial.suggest_categorical("dropout", [0.0, 0.1, 0.2])
+    dropout       = trial.suggest_categorical("dropout", [0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
     lr            = trial.suggest_float("learning_rate", 1e-5, 5e-3, log=True)
     l2_lambda     = trial.suggest_float("l2_lambda", 1e-7, 1e-3, log=True)
 
@@ -385,10 +385,10 @@ class ExactMatchPruningCallback(tf.keras.callbacks.Callback):
 def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_int):
 
     def objective(trial):
-        batch_size = trial.suggest_categorical("batch_size", [8, 16, 32])
-        epochs     = trial.suggest_int("epochs", 15, 50, step=5)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
+        epochs     = trial.suggest_int("epochs", 15, 75, step=5)
 
-        k = 5
+        k = 3
         skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
 
         fold_exact_matches = []
@@ -496,7 +496,7 @@ def optuna_objective_factory(X_trainval, yT_trainval, yA_trainval, y_trainval_in
 # =============================================================================
 # STUDIE MIT SQLITE-STORAGE (CRASH-SICHER!)
 # =============================================================================
-sampler = optuna.samplers.TPESampler(seed=SEED, n_startup_trials=10)
+sampler = optuna.samplers.TPESampler(seed=SEED, n_startup_trials=20)
 # Konservativ: erst nach 20 Epochen vergleichen, erst nachdem 20 Trials komplett
 # durchgelaufen sind ueberhaupt prunen. So gehen Spaet-Konvergierer nicht verloren.
 pruner  = optuna.pruners.MedianPruner(n_warmup_steps=20, n_startup_trials=20)
@@ -506,8 +506,8 @@ study = optuna.create_study(
     sampler=sampler,
     pruner=pruner,
     storage=f"sqlite:///{output_dir}/optuna.db",
-    study_name="bayesian_TA_MultiOutput",
-    load_if_exists=True
+    study_name="TA_MultiOutput",
+    load_if_exists=True,
 )
 
 # --- FIX: Nur abgeschlossene Trials zählen, nicht alle ---
@@ -546,7 +546,7 @@ def train_final_with_best(best_params, X_tv, yT_tv, yA_tv):
     es = EarlyStopping(
         monitor="val_loss",
         mode="min",
-        patience=7,
+        patience=5,
         restore_best_weights=True,
         verbose=1
     )

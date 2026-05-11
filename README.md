@@ -21,6 +21,9 @@ TODO: Explain how to obtain the data.
 ```shell
 pip install -r requirements.txt
 jupyter lab eval_models.ipynb
+
+CUDA_VISIBLE_DEVICES=05 python hp_search/multilabeling_exact_match.py
+optuna-dashboard "sqlite:///hp_search/output/optuna.db"
 ```
 
 ### Installing Times New Roman Font (for plots)

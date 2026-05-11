@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
 	"name": "Python 3",
-    "image": "mcr.microsoft.com/devcontainers/python:2-3.13-trixie",
+    "image": "mcr.microsoft.com/devcontainers/python:2-3.12-trixie",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -13,8 +13,13 @@
 			]
 		}
 	},
+	"remoteEnv": {
+		"LD_LIBRARY_PATH": "/usr/local/lib/python3.12/site-packages/nvidia/cusolver/lib:/usr/local/lib/python3.12/site-packages/nvidia/cufft/lib:/usr/local/lib/python3.12/site-packages/nvidia/cusparse/lib"
+	},
+	"postCreateCommand": "pip install -r requirements.txt",
 	"remoteUser": "root",
 	"runArgs": [
-		"--gpus", "device=1"
+		// "--gpus", "\"device=05\""
+		"--gpus", "all"
 	]
 }
